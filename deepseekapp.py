@@ -59,7 +59,7 @@ fig = px.bar(
 st.plotly_chart(fig, use_container_width=True)
 
 st.info("""
-**Interpretation selon l'etude:**
+# Interpretation selon l'etude:#
 - Un multiplicateur eleve (>1) indique une forte sensibilite du profit a ce facteur
 - Le pouvoir de depense du client (3.945x) est le facteur le plus influent
 - L'hotel est qualifie de 'sensible aux revenus'
