@@ -7,11 +7,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import json
-from datetime import datetime
 
-# Configuration de la page
 st.set_page_config(
     page_title="Dashboard KPIs Hôteliers",
     page_icon="🏨",
@@ -178,13 +174,11 @@ def calculate_overall_kpis(data):
     available_rooms = data["total_available_rooms"]
     occupied_rooms = data["total_occupied_rooms"]
     
-    # Coûts totaux par département
     total_rooms_cost = data["rooms_cost"]
     total_fb_cost = data["food_cost"] + data["beverage_cost"] + data["food_payroll"]
     total_spa_cost = data["spa_cost"]
     total_dept_cost = total_rooms_cost + total_fb_cost + total_spa_cost + data["leisure_cost"]
     
-    # Profits
     total_dept_profit = total_revenue - total_dept_cost
     gross_operating_profit = total_dept_profit - data["admin_costs"] - data["marketing_costs"] - data["energy_costs"] - data["maintenance_costs"]
     ebitda = gross_operating_profit + data["depreciation"]
@@ -219,13 +213,11 @@ def calculate_rooms_kpis(data):
         "Occupancy (%)": (occupied_rooms / available_rooms) * 100 if available_rooms > 0 else 0,
         "ADR (€)": rooms_revenue / occupied_rooms if occupied_rooms > 0 else 0,
         "RevPAR (€)": rooms_revenue / available_rooms if available_rooms > 0 else 0,
-        "RevPAR vérification (Occ x ADR)": ((occupied_rooms / available_rooms) * (rooms_revenue / occupied_rooms)) if occupied_rooms > 0 and available_rooms > 0 else 0,
         "Rooms Dept Profit (€)": rooms_profit,
         "Rooms Dept Profit (%)": (rooms_profit / rooms_revenue) * 100 if rooms_revenue > 0 else 0,
         "Rooms Dept Cost (%)": (rooms_cost / rooms_revenue) * 100 if rooms_revenue > 0 else 0,
         "Commissions (%)": (data["commissions"] / rooms_revenue) * 100 if rooms_revenue > 0 else 0,
         "Rooms Payroll (%)": (data["rooms_payroll"] / rooms_revenue) * 100 if rooms_revenue > 0 else 0,
-        "Other Rooms Cost (%)": ((rooms_cost - data["commissions"] - data["rooms_payroll"]) / rooms_revenue) * 100 if rooms_revenue > 0 else 0,
         "Cost per occupied Room (€)": rooms_cost / occupied_rooms if occupied_rooms > 0 else 0,
     }
 
@@ -253,14 +245,10 @@ def calculate_fandb_kpis(data):
         "Average Spend per Cover (€)": total_revenue / data["num_covers"] if data["num_covers"] > 0 else 0,
         "F&B Revenue POR (€)": total_revenue / occupied_rooms if occupied_rooms > 0 else 0,
         "F&B Revenue PAR (€)": total_revenue / available_rooms if available_rooms > 0 else 0,
-        "Revenue per available seat/hour (€)": total_revenue / (data["seats_available"] * data["operating_hours"]) if data["seats_available"] > 0 and data["operating_hours"] > 0 else 0,
         "Table Turn Rate": data["tables_served"] / data["tables_available"] if data["tables_available"] > 0 else 0,
-        "Average Table Occupancy (%)": (data["tables_served"] / (data["tables_available"] * 2)) * 100 if data["tables_available"] > 0 else 0,
-        "F&B Revenue per wait staff (€)": total_revenue / data["wait_staff"] if data["wait_staff"] > 0 else 0,
         "Breakfast sit down rate (%)": (data["num_breakfast_covers"] / data["total_nights"]) * 100 if data["total_nights"] > 0 else 0,
         "Food Cost of Sales (%)": (data["food_cost"] / food_revenue) * 100 if food_revenue > 0 else 0,
         "Beverage Cost of Sales (%)": (data["beverage_cost"] / beverage_revenue) * 100 if beverage_revenue > 0 else 0,
-        "Total F&B Cost of Sales (%)": ((data["food_cost"] + data["beverage_cost"]) / total_revenue) * 100 if total_revenue > 0 else 0,
         "F&B Payroll (%)": (data["food_payroll"] / total_revenue) * 100 if total_revenue > 0 else 0,
     }
 
@@ -272,29 +260,23 @@ def calculate_spa_kpis(data):
     spa_profit = spa_revenue - spa_cost
     
     leisure_revenue = data["leisure_revenue"]
-    leisure_cost = data["leisure_cost"]
-    leisure_profit = leisure_revenue - leisure_cost
+    leisure_profit = leisure_revenue - data["leisure_cost"]
     
     total_revenue = spa_revenue + leisure_revenue
-    total_cost = spa_cost + leisure_cost
-    total_profit = total_revenue - total_cost
+    total_profit = spa_profit + leisure_profit
     
     occupied_rooms = data["total_occupied_rooms"]
     total_guests = data["total_guests"]
     
-    # Spa KPIs
     tru = (data["treatment_hours_sold"] / data["treatment_hours_available"]) * 100 if data["treatment_hours_available"] > 0 else 0
     atr = data["treatment_revenue"] / data["total_treatments"] if data["total_treatments"] > 0 else 0
     revpatr = spa_revenue / data["treatment_hours_available"] if data["treatment_hours_available"] > 0 else 0
     
     return {
-        "Total Spa Revenue (€)": spa_revenue,
-        "Total Leisure Revenue (€)": leisure_revenue,
         "Total Spa/Leisure Profit (%)": (total_profit / total_revenue) * 100 if total_revenue > 0 else 0,
         "Treatment Room Utilisation - TRU (%)": tru,
         "Average Treatment Rate - ATR (€)": atr,
         "Revenue Per Available Treatment Room (€)": revpatr,
-        "Revenue Per Available Treatment Room (ATR x TRU)": (atr * tru / 100) if atr > 0 else 0,
         "Average Spend per Spa Customer (€)": spa_revenue / data["spa_customers"] if data["spa_customers"] > 0 else 0,
         "Spa Revenue POR (€)": spa_revenue / occupied_rooms if occupied_rooms > 0 else 0,
         "Guest Capture Rate (%)": (data["spa_visitors"] / total_guests) * 100 if total_guests > 0 else 0,
@@ -304,8 +286,6 @@ def calculate_spa_kpis(data):
         "Average revenue per class (€)": data["class_revenue"] / data["num_classes"] if data["num_classes"] > 0 else 0,
         "Cost of Sales (%)": (data["spa_cogs"] / spa_revenue) * 100 if spa_revenue > 0 else 0,
         "Spa Payroll (%)": (data["spa_payroll"] / spa_revenue) * 100 if spa_revenue > 0 else 0,
-        "Other Spa Costs (%)": ((spa_cost - data["spa_cogs"] - data["spa_payroll"]) / spa_revenue) * 100 if spa_revenue > 0 else 0,
-        "Total Spa Cost (%)": (spa_cost / spa_revenue) * 100 if spa_revenue > 0 else 0,
         "Therapist Utilisation (%)": (data["therapist_hours_performed"] / data["therapist_hours_available"]) * 100 if data["therapist_hours_available"] > 0 else 0,
     }
 
@@ -455,7 +435,6 @@ def show_data_input():
             st.session_state.hotel_data["spa_revenue"] = st.number_input("Revenu spa (€)", value=st.session_state.hotel_data["spa_revenue"], min_value=0)
             st.session_state.hotel_data["spa_cost"] = st.number_input("Coûts spa (€)", value=st.session_state.hotel_data["spa_cost"], min_value=0)
             st.session_state.hotel_data["treatment_hours_sold"] = st.number_input("Heures traitement vendues", value=st.session_state.hotel_data["treatment_hours_sold"], min_value=0)
-            st.session_state.hotel_data["treatment_hours_available"] = st.number_input("Heures traitement disponibles", value=st.session_state.hotel_data["treatment_hours_available"], min_value=1)
         with col2:
             st.session_state.hotel_data["leisure_revenue"] = st.number_input("Revenu centre loisirs (€)", value=st.session_state.hotel_data["leisure_revenue"], min_value=0)
             st.session_state.hotel_data["num_members"] = st.number_input("Nombre de membres", value=st.session_state.hotel_data["num_members"], min_value=0)
@@ -492,8 +471,7 @@ if section == "🏆 Tableau de bord général":
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        delta_occ = kpis["Occupancy (%)"] - benchmarks["Occupancy"]["min"]
-        st.metric("Taux d'occupation", f"{kpis['Occupancy (%)']:.1f}%", delta=f"{delta_occ:.1f}% vs benchmark")
+        st.metric("Taux d'occupation", f"{kpis['Occupancy (%)']:.1f}%")
     with col2:
         st.metric("ADR", f"{kpis['ADR (€)']:.2f} €")
     with col3:
@@ -521,30 +499,37 @@ if section == "🏆 Tableau de bord général":
         "Loisirs": st.session_state.hotel_data["leisure_revenue"],
     }
     
-    fig = make_subplots(rows=1, cols=2, subplot_titles=("Revenus par département", "Coûts par département"))
+    fig1 = px.pie(values=list(revenue_by_dept.values()), names=list(revenue_by_dept.keys()), 
+                  title="Répartition des revenus par département", hole=0.3)
+    st.plotly_chart(fig1, use_container_width=True)
     
-    fig.add_trace(go.Pie(labels=list(revenue_by_dept.keys()), values=list(revenue_by_dept.values()), hole=0.3), row=1, col=1)
+    # Graphique des coûts
+    st.subheader("📉 Répartition des coûts")
     
     costs_by_dept = {
         "Hébergement": st.session_state.hotel_data["rooms_cost"],
         "Restauration": st.session_state.hotel_data["food_cost"] + st.session_state.hotel_data["beverage_cost"] + st.session_state.hotel_data["food_payroll"],
         "Spa": st.session_state.hotel_data["spa_cost"],
         "Loisirs": st.session_state.hotel_data["leisure_cost"],
+        "Administratifs": st.session_state.hotel_data["admin_costs"],
+        "Marketing": st.session_state.hotel_data["marketing_costs"],
     }
-    fig.add_trace(go.Pie(labels=list(costs_by_dept.keys()), values=list(costs_by_dept.values()), hole=0.3), row=1, col=2)
     
-    fig.update_layout(height=500, showlegend=True)
-    st.plotly_chart(fig, use_container_width=True)
+    fig2 = px.bar(x=list(costs_by_dept.keys()), y=list(costs_by_dept.values()), 
+                  title="Coûts par département", color=list(costs_by_dept.values()),
+                  color_continuous_scale="Reds")
+    fig2.update_layout(xaxis_tickangle=45, height=400)
+    st.plotly_chart(fig2, use_container_width=True)
     
     # Évolution mensuelle simulée
     st.subheader("📅 Évolution mensuelle de l'occupation")
     months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
     occupancy_trend = [55, 58, 62, 68, 72, 78, 82, 80, 75, 68, 60, 56]
     
-    fig = px.line(x=months, y=occupancy_trend, markers=True, title="Taux d'occupation mensuel")
-    fig.add_hline(y=kpis["Occupancy (%)"], line_dash="dash", annotation_text=f"Moyenne: {kpis['Occupancy (%)']:.1f}%")
-    fig.update_layout(xaxis_title="Mois", yaxis_title="Taux d'occupation (%)")
-    st.plotly_chart(fig, use_container_width=True)
+    fig3 = px.line(x=months, y=occupancy_trend, markers=True, title="Taux d'occupation mensuel")
+    fig3.add_hline(y=kpis["Occupancy (%)"], line_dash="dash", annotation_text=f"Moyenne: {kpis['Occupancy (%)']:.1f}%")
+    fig3.update_layout(xaxis_title="Mois", yaxis_title="Taux d'occupation (%)")
+    st.plotly_chart(fig3, use_container_width=True)
 
 
 # ============================================================================
@@ -711,17 +696,18 @@ elif section == "💆 Département Spa & Loisirs":
     col2.metric("Revenue par m²", f"{kpis['Revenue per square metre (€)']:.2f} €")
     col3.metric("Revenue moyen par cours", f"{kpis['Average revenue per class (€)']:.2f} €")
     
-    # Graphique
-    fig = go.Figure()
-    fig.add_trace(go.Indicator(mode="gauge+number", value=kpis['Treatment Room Utilisation - TRU (%)'] ,
-                               title={'text': "TRU - Taux d'utilisation des salles"},
-                               domain={'x': [0, 1], 'y': [0, 1]},
-                               gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "darkblue"},
-                                      'steps': [
-                                          {'range': [0, 50], 'color': "red"},
-                                          {'range': [50, 75], 'color': "orange"},
-                                          {'range': [75, 100], 'color': "green"}]}))
-    fig.update_layout(height=400)
+    # Graphique jauge pour TRU
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=kpis['Treatment Room Utilisation - TRU (%)'],
+        title={'text': "TRU - Taux d'utilisation des salles de traitement"},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "darkblue"},
+               'steps': [
+                   {'range': [0, 50], 'color': "red"},
+                   {'range': [50, 75], 'color': "orange"},
+                   {'range': [75, 100], 'color': "green"}]}))
+    fig.update_layout(height=350)
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -775,7 +761,7 @@ elif section == "📉 Analyse des coûts":
     
     costs = {
         "Hébergement": st.session_state.hotel_data["rooms_cost"],
-        "Restauration": st.session_state.hotel_data["food_cost"] + st.session_state.hotel_data["beverage_cost"],
+        "Restauration (COGS)": st.session_state.hotel_data["food_cost"] + st.session_state.hotel_data["beverage_cost"],
         "Payroll F&B": st.session_state.hotel_data["food_payroll"],
         "Spa": st.session_state.hotel_data["spa_cost"],
         "Administratifs": st.session_state.hotel_data["admin_costs"],
@@ -789,7 +775,7 @@ elif section == "📉 Analyse des coûts":
     fig.update_layout(xaxis_tickangle=45, height=500)
     st.plotly_chart(fig, use_container_width=True)
     
-    st.subheader("📈 Ratios de coûts")
+    st.subheader("📈 Ratios de coûts (% du revenu total)")
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Dept Cost %", f"{kpis['Total Dept Cost (%)']:.1f}%")
     col2.metric("Payroll Cost %", f"{kpis['Payroll Cost (%)']:.1f}%")
