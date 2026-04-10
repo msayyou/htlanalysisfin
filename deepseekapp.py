@@ -1,11 +1,11 @@
 
-**Facteurs controlants identifies:**
+**Facteurs contrôlants identifiés:**
 1. Nombre de clients
-2. Pouvoir de depense moyen par client
-3. Couts des materiaux (variables)
+2. Pouvoir de dépense moyen par client
+3. Coûts des matériaux (variables)
 4. Salaires variables
 5. Frais administratifs
-6. Frais generaux
+6. Frais généraux
 """)
 
 change_percent = st.slider("Pourcentage de variation des facteurs (%)", min_value=1, max_value=30, value=10) / 100
@@ -16,15 +16,15 @@ results, base_net_income = calculate_profit_sensitivity(
     change_percent
 )
 
-st.subheader(f"💰 Benefice net initial: {base_net_income:,.2f} JOD")
+st.subheader(f"💰 Bénéfice net initial: {base_net_income:,.2f} JOD")
 
-# Tableau des resultats
+# Tableau des résultats
 df_results = pd.DataFrame([
     {
-        "Facteur controlant": factor,
-        "Nouvelle valeur": res["new_value"],
-        "Nouveau benefice net (JOD)": f"{res['net_income']:,.2f}",
-        "Variation du benefice (%)": f"{res['change_ratio']*100:.2f}%",
+        "Facteur contrôlant": factor,
+        "Nouvelle valeur": round(res["new_value"], 2),
+        "Nouveau bénéfice net (JOD)": f"{res['net_income']:,.2f}",
+        "Variation du bénéfice (%)": f"{res['change_ratio']*100:.2f}%",
         "Multiplicateur de profit": f"{res['multiplier']:.3f}"
     }
     for factor, res in results.items()
@@ -32,8 +32,8 @@ df_results = pd.DataFrame([
 
 st.dataframe(df_results, use_container_width=True)
 
-# Classement des facteurs (Table 4 du document)
-st.subheader("📊 Classement des facteurs controlants selon leur impact")
+# Classement des facteurs
+st.subheader("📊 Classement des facteurs contrôlants selon leur impact")
 
 ranking = sorted(
     [(factor, res["multiplier"]) for factor, res in results.items()],
@@ -41,7 +41,7 @@ ranking = sorted(
     reverse=True
 )
 
-ranking_df = pd.DataFrame(ranking, columns=["Facteur controlant", "Multiplicateur de profit"])
+ranking_df = pd.DataFrame(ranking, columns=["Facteur contrôlant", "Multiplicateur de profit"])
 ranking_df.index = range(1, len(ranking_df) + 1)
 ranking_df.index.name = "Rang"
 
@@ -50,82 +50,74 @@ st.dataframe(ranking_df, use_container_width=True)
 # Graphique
 fig = px.bar(
     ranking_df, 
-    x="Facteur controlant", 
+    x="Facteur contrôlant", 
     y="Multiplicateur de profit",
-    title="Multiplicateur de profit par facteur controlant",
+    title="Multiplicateur de profit par facteur contrôlant",
     color="Multiplicateur de profit",
     color_continuous_scale="Viridis"
 )
 st.plotly_chart(fig, use_container_width=True)
 
 st.info("""
- **Interpretation selon l'etude** =
-- Un multiplicateur eleve (>1) indique une forte sensibilite du profit a ce facteur
-- Le pouvoir de depense du client (3.945x) est le facteur le plus influent
-- L'hotel est qualifie de 'sensible aux revenus'
+**Interprétation selon l'étude:**
+- Un multiplicateur élevé (>1) indique une forte sensibilité du profit à ce facteur
+- Le pouvoir de dépense du client est le facteur le plus influent
+- L'hôtel est qualifié de 'sensible aux revenus'
 """)
 
 
 # ============================================================================
-# SECTION 2: TAUX D'OCCUPATION
+# SECTION 3: TAUX D'OCCUPATION
 # ============================================================================
 
-elif section == "2. Taux d'Occupation":
+elif section == "3. Taux d'Occupation":
 st.header("🏠 Taux d'Occupation")
 st.markdown("""
 **Formules selon le document:**
 
-- **Taux d'occupation des chambres** = (Nombre de chambres occupees / Nombre de chambres disponibles) * 100%
-- **Taux d'occupation des lits** = (Nombre de lits occupes / Nombre de lits disponibles) * 100%
-- **Taux d'occupation des suites** = (Nombre de suites occupees / Nombre de suites disponibles) * 100%
-- **Taux d'occupation du restaurant** = (Nombre de repas servis / Capacite en sieges) * 100%
+- **Taux d'occupation des chambres** = (Nombre de chambres occupées / Nombre de chambres disponibles) × 100%
+- **Taux d'occupation des lits** = (Nombre de lits occupés / Nombre de lits disponibles) × 100%
+- **Taux d'occupation des suites** = (Nombre de suites occupées / Nombre de suites disponibles) × 100%
+- **Taux d'occupation du restaurant** = (Nombre de repas servis / Capacité en sièges) × 100%
 """)
 
-col1, col2 = st.columns(2)
+available_rooms = st.number_input("Chambres disponibles", value=data["available_rooms"], min_value=1)
+occupied_rooms = st.number_input("Chambres occupées", value=data["occupied_rooms"], min_value=0)
+available_beds = st.number_input("Lits disponibles", value=800, min_value=1)
+occupied_beds = st.number_input("Lits occupés", value=430, min_value=0)
+available_suites = st.number_input("Suites disponibles", value=100, min_value=1)
+occupied_suites = st.number_input("Suites occupées", value=54, min_value=0)
+seats_capacity = st.number_input("Capacité restaurant (sièges)", value=data["seats_available"], min_value=1)
+meals_served = st.number_input("Repas servis", value=data["num_meals"], min_value=0)
 
-with col1:
-    st.subheader("Donnees d'entree")
-    available_rooms = st.number_input("Chambres disponibles", value=data["available_rooms"], min_value=1)
-    occupied_rooms = st.number_input("Chambres occupees", value=data["occupied_rooms"], min_value=0)
-    available_beds = st.number_input("Lits disponibles", value=data["available_beds"], min_value=1)
-    occupied_beds = st.number_input("Lits occupes", value=data["occupied_beds"], min_value=0)
-    
-with col2:
-    available_suites = st.number_input("Suites disponibles", value=data["available_suites"], min_value=1)
-    occupied_suites = st.number_input("Suites occupees", value=data["occupied_suites"], min_value=0)
-    seats_capacity = st.number_input("Capacite restaurant (sieges)", value=data["seats_capacity"], min_value=1)
-    meals_served = st.number_input("Repas servis", value=data["meals_served"], min_value=0)
+occupancy_rate = (occupied_rooms / available_rooms) * 100 if available_rooms > 0 else 0
+bed_rate = (occupied_beds / available_beds) * 100 if available_beds > 0 else 0
+suite_rate = (occupied_suites / available_suites) * 100 if available_suites > 0 else 0
+restaurant_rate = (meals_served / seats_capacity) * 100 if seats_capacity > 0 else 0
 
-occupancy_rates = calculate_occupancy_rates(
-    occupied_rooms, available_rooms,
-    occupied_beds, available_beds,
-    occupied_suites, available_suites,
-    meals_served, seats_capacity
-)
+st.subheader("📊 Résultats des taux d'occupation")
 
-st.subheader("📊 Resultats des taux d'occupation")
-
-# Affichage des metriques
 cols = st.columns(4)
-for i, (name, value) in enumerate(occupancy_rates.items()):
-    cols[i].metric(name, f"{value:.1f}%")
+cols[0].metric("Taux d'occupation chambres", f"{occupancy_rate:.1f}%")
+cols[1].metric("Taux d'occupation lits", f"{bed_rate:.1f}%")
+cols[2].metric("Taux d'occupation suites", f"{suite_rate:.1f}%")
+cols[3].metric("Taux d'occupation restaurant", f"{restaurant_rate:.1f}%")
 
 # Graphique
 fig = px.bar(
-    x=list(occupancy_rates.keys()),
-    y=list(occupancy_rates.values()),
+    x=["Chambres", "Lits", "Suites", "Restaurant"],
+    y=[occupancy_rate, bed_rate, suite_rate, restaurant_rate],
     title="Taux d'occupation",
     labels={"x": "Indicateur", "y": "Taux (%)"},
-    color=list(occupancy_rates.values()),
+    color=[occupancy_rate, bed_rate, suite_rate, restaurant_rate],
     color_continuous_scale="Blues"
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# Donnees mensuelles de l'etude (Table 5)
-st.subheader("📅 Donnees mensuelles - Hotel Al Zaitonia (reference)")
+# Données mensuelles de l'étude
+st.subheader("📅 Évolution mensuelle - Hôtel Al Zaitonia")
 monthly_data = {
-    "Mois": ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"],
-    "Chambres occupees": [250, 200, 280, 300, 330, 400, 450, 420, 350, 300, 230, 300],
+    "Mois": ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"],
     "Taux d'occupation (%)": [42, 33, 47, 50, 55, 67, 75, 70, 58, 50, 38, 50]
 }
 monthly_df = pd.DataFrame(monthly_data)
@@ -134,66 +126,334 @@ fig_monthly = px.line(
     monthly_df, 
     x="Mois", 
     y="Taux d'occupation (%)",
-    title="Evolution mensuelle du taux d'occupation (Hotel Al Zaitonia - 2003)",
+    title="Évolution mensuelle du taux d'occupation",
     markers=True
 )
 fig_monthly.add_hline(y=monthly_df["Taux d'occupation (%)"].mean(), line_dash="dash", 
                       annotation_text=f"Moyenne: {monthly_df['Taux d occupation (%)'].mean():.1f}%")
 st.plotly_chart(fig_monthly, use_container_width=True)
 
-st.caption("Source: Table 5 du document - Hotel Al Zaitonia, chambres disponibles mensuelles: 600")
+st.caption("Source: Table 5 du document - Hôtel Al Zaitonia")
 
 
 # ============================================================================
-# SECTION 3: DEPENSES DES CLIENTS
+# SECTION 4: DÉPARTEMENT HÉBERGEMENT
 # ============================================================================
 
-elif section == "3. Depenses des Clients":
-st.header("💰 Taux de Depense des Clients")
+elif section == "4. Département Hébergement":
+st.header("🛏️ Département Hébergement - KPIs Spécifiques")
+st.markdown("""
+**KPIs du département Hébergement selon Fáilte Ireland**
+
+Les trois KPIs principaux à suivre sont: **ADR** (Average Daily Rate), **Occupancy** et **RevPAR** (Revenue per Available Room).
+""")
+
+rooms_kpis = calculate_rooms_kpis(data)
+
+# KPIs principaux
+st.subheader("🎯 KPIs Principaux")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Occupancy", f"{rooms_kpis['Occupancy (%)']:.1f}%")
+with col2:
+    st.metric("ADR", f"{rooms_kpis['ADR (€)']:.2f} €")
+with col3:
+    st.metric("RevPAR", f"{rooms_kpis['RevPAR (€)']:.2f} €")
+
+st.info(f"Vérification: RevPAR = Occupancy × ADR = {rooms_kpis['Occupancy (%)']:.1f}% × {rooms_kpis['ADR (€)']:.2f}€ = {rooms_kpis['RevPAR (Occupancy x ADR)']:.2f}€")
+
+# KPIs de profitabilité et coûts
+st.subheader("📊 Profitabilité et Coûts")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Profit Dept Hébergement", f"{rooms_kpis['Total Rooms Dept Profit (%)']:.1f}%")
+with col2:
+    st.metric("Commissions", f"{rooms_kpis['Commissions (%)']:.1f}%")
+with col3:
+    st.metric("Payroll Cost", f"{rooms_kpis['Rooms Payroll Cost (%)']:.1f}%")
+with col4:
+    st.metric("Cost per occupied Room", f"{rooms_kpis['Cost per occupied Room (€)']:.2f} €")
+
+# Graphiques
+st.subheader("📈 Analyse détaillée")
+
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Structure des coûts hébergement", "Performance mensuelle"))
+
+# Structure des coûts
+cost_structure = {
+    "Payroll": rooms_kpis['Rooms Payroll Cost (%)'],
+    "Commissions": rooms_kpis['Commissions (%)'],
+    "Autres coûts": rooms_kpis['Other Rooms Dept Cost (%)']
+}
+fig.add_trace(
+    go.Pie(labels=list(cost_structure.keys()), values=list(cost_structure.values()), hole=0.3),
+    row=1, col=1
+)
+
+# Performance mensuelle simulée
+months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
+revpar_values = [45, 38, 52, 58, 65, 80, 92, 85, 68, 58, 42, 55]
+
+fig.add_trace(
+    go.Scatter(x=months, y=revpar_values, mode='lines+markers', name='RevPAR', line=dict(color='blue')),
+    row=1, col=2
+)
+fig.add_hline(y=sum(revpar_values)/len(revpar_values), line_dash="dash", 
+              annotation_text=f"Moyenne: {sum(revpar_values)/len(revpar_values):.0f}€", row=1, col=2)
+
+fig.update_layout(height=500, showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+
+# Tableau récapitulatif
+st.subheader("📋 Détail des KPIs Hébergement")
+rooms_df = pd.DataFrame([
+    {"KPI": k, "Valeur": f"{v:.2f}" + ("%" if "%" in k else " €" if "€" in k else "") 
+     for k, v in rooms_kpis.items()}
+]).T.reset_index()
+rooms_df.columns = ["KPI", "Valeur"]
+st.dataframe(rooms_df, use_container_width=True, hide_index=True)
+
+
+# ============================================================================
+# SECTION 5: DÉPARTEMENT RESTAURATION (F&B)
+# ============================================================================
+
+elif section == "5. Département Restauration (F&B)":
+st.header("🍽️ Département Restauration (F&B) - KPIs Spécifiques")
+st.markdown("""
+**KPIs du département Restauration selon Fáilte Ireland**
+
+Les KPIs les plus courants sont les marges brutes et la dépense moyenne par client.
+""")
+
+fandb_kpis = calculate_fandb_kpis(data)
+
+# KPIs principaux
+st.subheader("🎯 KPIs de Revenus")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("F&B Revenue POR", f"{fandb_kpis['F&B Revenue POR (€)']:.2f} €")
+with col2:
+    st.metric("F&B Revenue PAR", f"{fandb_kpis['F&B Revenue PAR (€)']:.2f} €")
+with col3:
+    st.metric("Average Spend per Cover", f"{fandb_kpis['Average Spend per Cover (€)']:.2f} €")
+with col4:
+    st.metric("Breakfast sit down rate", f"{fandb_kpis['Breakfast sit down rate (%)']:.1f}%")
+
+# Marges
+st.subheader("📈 Marges Brutes")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Gross Food Margin", f"{fandb_kpis['Gross Food Margin (%)']:.1f}%")
+with col2:
+    st.metric("Gross Beverage Margin", f"{fandb_kpis['Gross Beverage Margin (%)']:.1f}%")
+with col3:
+    st.metric("Total F&B Dept Profit", f"{fandb_kpis['Total F&B Dept Profit (%)']:.1f}%")
+
+# Efficacité opérationnelle
+st.subheader("⚙️ KPIs d'Efficacité Opérationnelle")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Table Turn Rate", f"{fandb_kpis['Table Turn Rate']:.1f} tours")
+    st.caption("Nombre de services par table")
+with col2:
+    st.metric("Revenue per wait staff", f"{fandb_kpis['F&B Revenue per wait staff (€)']:.0f} €")
+    st.caption("Productivité du personnel")
+with col3:
+    st.metric("Revenue per available seat/hour", f"{fandb_kpis['Revenue per available seat per hour (€)']:.2f} €")
+    st.caption("Rendement par siège")
+
+# Graphique des marges
+st.subheader("📊 Analyse des marges F&B")
+
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Structure du coût des ventes", "Performance par service"))
+
+# Coût des ventes
+cogs_structure = {
+    "Food Cost %": fandb_kpis['Food Cost of Sales (%)'],
+    "Beverage Cost %": fandb_kpis['Beverage Cost of Sales (%)'],
+    "Marge brute": 100 - fandb_kpis['Total F&B Cost of Sales (%)']
+}
+fig.add_trace(
+    go.Bar(x=list(cogs_structure.keys()), y=list(cogs_structure.values()), 
+           marker_color=["#FF6B6B", "#4ECDC4", "#45B7D1"]),
+    row=1, col=1
+)
+
+# Performance par service
+service_performance = {
+    "Petit-déjeuner": 18,
+    "Déjeuner": 22,
+    "Dîner": 35
+}
+fig.add_trace(
+    go.Bar(x=list(service_performance.keys()), y=list(service_performance.values()),
+           marker_color="#F18F01"),
+    row=1, col=2
+)
+
+fig.update_layout(height=500, showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+
+# Tableau complet
+st.subheader("📋 Détail des KPIs Restauration")
+fandb_df = pd.DataFrame([
+    {"KPI": k, "Valeur": f"{v:.2f}" + ("%" if "%" in k else " €" if "€" in k else "") 
+     for k, v in fandb_kpis.items()}
+]).T.reset_index()
+fandb_df.columns = ["KPI", "Valeur"]
+st.dataframe(fandb_df, use_container_width=True, hide_index=True)
+
+
+# ============================================================================
+# SECTION 6: DÉPARTEMENT SPA & LOISIRS
+# ============================================================================
+
+elif section == "6. Département Spa & Loisirs":
+st.header("💆 Département Spa & Loisirs - KPIs Spécifiques")
+st.markdown("""
+**KPIs du département Spa et Centre de Loisirs selon Fáilte Ireland**
+
+Ces indicateurs permettent de mesurer la performance des activités annexes de l'hôtel.
+""")
+
+spa_kpis = calculate_spa_kpis(data)
+
+# KPIs Spa
+st.subheader("🧖 KPIs du Spa")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Treatment Room Utilisation", f"{spa_kpis['Treatment Room Utilisation (TRU) (%)']:.1f}%")
+with col2:
+    st.metric("Average Treatment Rate", f"{spa_kpis['Average Treatment Rate (ATR) (€)']:.2f} €")
+with col3:
+    st.metric("Revenue Per Available Treatment Room", f"{spa_kpis['Revenue Per Available Treatment Room (€)']:.2f} €")
+with col4:
+    st.metric("Average Spend per Spa Customer", f"{spa_kpis['Average Spend per Spa Customer (€)']:.2f} €")
+
+# KPIs de capture clientèle
+st.subheader("📊 KPIs de Capture Clientèle")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Guest Capture Rate", f"{spa_kpis['Guest Capture Rate (%)']:.1f}%")
+    st.caption("% des clients hôtel utilisant le spa")
+with col2:
+    st.metric("Retail Capture Rate", f"{spa_kpis['Retail Capture Rate (%)']:.1f}%")
+    st.caption("% des clients spa achetant en boutique")
+with col3:
+    st.metric("Spa Revenue POR", f"{spa_kpis['Spa Revenue POR (€)']:.2f} €")
+    st.caption("Revenu spa par chambre occupée")
+
+# KPIs Centre de Loisirs
+st.subheader("🏋️ KPIs du Centre de Loisirs")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Revenue per Member", f"{spa_kpis['Revenue per Member (€)']:.2f} €")
+with col2:
+    st.metric("Revenue per square metre", f"{spa_kpis['Revenue per square metre (€)']:.2f} €")
+with col3:
+    st.metric("Average revenue per class", f"{spa_kpis['Average revenue per class (€)']:.2f} €")
+
+# KPIs de coûts
+st.subheader("📉 KPIs de Coûts - Spa & Loisirs")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Cost of Sales", f"{spa_kpis['Cost of Sales (%)']:.1f}%")
+with col2:
+    st.metric("Payroll Cost", f"{spa_kpis['Spa and Leisure Payroll Cost (%)']:.1f}%")
+with col3:
+    st.metric("Therapist Utilisation", f"{spa_kpis['Therapist Utilisation (%)']:.1f}%")
+with col4:
+    st.metric("Total Dept Cost", f"{spa_kpis['Total Spa/Leisure Dept Cost (%)']:.1f}%")
+
+# Graphiques
+st.subheader("📈 Visualisation des KPIs Spa")
+
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Utilisation et rendement", "Structure des coûts"))
+
+# Utilisation et rendement
+utilisation_data = {
+    "TRU": spa_kpis['Treatment Room Utilisation (TRU) (%)'],
+    "ATR": spa_kpis['Average Treatment Rate (ATR) (€)'] / 10,
+    "RevPATR": spa_kpis['Revenue Per Available Treatment Room (€)'] / 10
+}
+fig.add_trace(
+    go.Bar(x=list(utilisation_data.keys()), y=list(utilisation_data.values()),
+           marker_color=["#2E86AB", "#A23B72", "#F18F01"]),
+    row=1, col=1
+)
+
+# Structure des coûts
+cost_structure = {
+    "Cost of Sales": spa_kpis['Cost of Sales (%)'],
+    "Payroll": spa_kpis['Spa and Leisure Payroll Cost (%)'],
+    "Autres": spa_kpis['Other Spa/Leisure Dept Cost (%)']
+}
+fig.add_trace(
+    go.Pie(labels=list(cost_structure.keys()), values=list(cost_structure.values()), hole=0.3),
+    row=1, col=2
+)
+
+fig.update_layout(height=500, showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+
+# Tableau complet
+st.subheader("📋 Détail des KPIs Spa & Loisirs")
+spa_df = pd.DataFrame([
+    {"KPI": k, "Valeur": f"{v:.2f}" + ("%" if "%" in k else " €" if "€" in k else "") 
+     for k, v in spa_kpis.items()}
+]).T.reset_index()
+spa_df.columns = ["KPI", "Valeur"]
+st.dataframe(spa_df, use_container_width=True, hide_index=True)
+
+
+# ============================================================================
+# SECTION 7: DÉPENSES DES CLIENTS
+# ============================================================================
+
+elif section == "7. Dépenses des Clients":
+st.header("💰 Taux de Dépense des Clients")
 st.markdown("""
 **Formules selon le document:**
 
-- **Depense moyenne generale** = Revenu total / Nombre de clients
-- **Depense moyenne hebergement** = Revenu hebergement / Nombre de clients
-- **Depense moyenne repas et boissons** = Revenu repas / Nombre de clients
-- **Depense moyenne autres services** = Revenu autres services / Nombre de clients
-- **Depense moyenne par repas** = Revenu repas / Nombre de repas
-- **Duree moyenne du sejour** = Nombre total de nuits / Nombre de clients
+- **Dépense moyenne générale** = Revenu total / Nombre de clients
+- **Dépense moyenne hébergement** = Revenu hébergement / Nombre de clients
+- **Dépense moyenne repas et boissons** = Revenu repas / Nombre de clients
+- **Dépense moyenne autres services** = Revenu autres services / Nombre de clients
+- **Dépense moyenne par repas** = Revenu repas / Nombre de repas
+- **Durée moyenne du séjour** = Nombre total de nuits / Nombre de clients
 """)
 
-col1, col2 = st.columns(2)
+total_revenue = st.number_input("Revenu total (JOD)", value=data["total_revenue"], min_value=0.0)
+accommodation_revenue = st.number_input("Revenu hébergement (JOD)", value=data["accommodation_revenue"], min_value=0.0)
+food_revenue = st.number_input("Revenu repas et boissons (JOD)", value=data["food_revenue"], min_value=0.0)
+other_revenue = st.number_input("Revenu autres services (JOD)", value=data["other_revenue"], min_value=0.0)
+num_guests = st.number_input("Nombre de clients", value=data["num_guests"], min_value=1)
+num_meals = st.number_input("Nombre de repas servis", value=data["num_meals"], min_value=0)
+total_nights = st.number_input("Nombre total de nuits", value=data["total_nights"], min_value=0)
 
-with col1:
-    st.subheader("Revenus")
-    total_revenue = st.number_input("Revenu total (JOD)", value=data["total_revenue"], min_value=0.0)
-    accommodation_revenue = st.number_input("Revenu hebergement (JOD)", value=data["accommodation_revenue"], min_value=0.0)
-    food_revenue = st.number_input("Revenu repas et boissons (JOD)", value=data["food_revenue"], min_value=0.0)
-    other_revenue = st.number_input("Revenu autres services (JOD)", value=data["other_revenue"], min_value=0.0)
-    
-with col2:
-    st.subheader("Autres donnees")
-    num_guests = st.number_input("Nombre de clients", value=data["num_guests"], min_value=1)
-    num_meals = st.number_input("Nombre de repas servis", value=data["num_meals"], min_value=0)
-    total_nights = st.number_input("Nombre total de nuits", value=data["total_nights"], min_value=0)
+avg_spending_general = total_revenue / num_guests if num_guests > 0 else 0
+avg_spending_accommodation = accommodation_revenue / num_guests if num_guests > 0 else 0
+avg_spending_food = food_revenue / num_guests if num_guests > 0 else 0
+avg_spending_other = other_revenue / num_guests if num_guests > 0 else 0
+avg_spending_per_meal = food_revenue / num_meals if num_meals > 0 else 0
+avg_stay_duration = total_nights / num_guests if num_guests > 0 else 0
 
-spending_rates = calculate_guest_spending_rates(
-    total_revenue, num_guests, accommodation_revenue, food_revenue, 
-    other_revenue, num_meals, total_nights
-)
+st.subheader("📊 Résultats des dépenses moyennes")
 
-st.subheader("📊 Resultats des depenses moyennes")
+col1, col2, col3 = st.columns(3)
+col1.metric("Dépense moyenne générale", f"{avg_spending_general:.2f} JOD")
+col2.metric("Dépense moyenne hébergement", f"{avg_spending_accommodation:.2f} JOD")
+col3.metric("Dépense moyenne repas", f"{avg_spending_food:.2f} JOD")
 
-spending_df = pd.DataFrame([
-    {"Indicateur": k, "Valeur (JOD)": v if "JOD" in k else v}
-    for k, v in spending_rates.items()
-])
-st.dataframe(spending_df, use_container_width=True)
+col1, col2, col3 = st.columns(3)
+col1.metric("Dépense moyenne autres services", f"{avg_spending_other:.2f} JOD")
+col2.metric("Dépense moyenne par repas", f"{avg_spending_per_meal:.2f} JOD")
+col3.metric("Durée moyenne du séjour", f"{avg_stay_duration:.1f} nuits")
 
-# Graphique des repartitions (Figure 2 du document)
-st.subheader("🏗️ Structure des depenses par service")
-
+# Graphique
 composition = {
-    "Hebergement": accommodation_revenue,
+    "Hébergement": accommodation_revenue,
     "Repas et boissons": food_revenue,
     "Autres services": other_revenue
 }
@@ -201,391 +461,308 @@ composition = {
 fig = px.pie(
     values=list(composition.values()),
     names=list(composition.keys()),
-    title="Repartition du revenu par service",
+    title="Répartition du revenu par service",
     color_discrete_sequence=px.colors.sequential.Blues_r
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# Donnees mensuelles de l'etude (Table 6)
-st.subheader("📅 Donnees mensuelles de reference - Hotel Al Zaitonia")
+# Données mensuelles
+st.subheader("📅 Évolution mensuelle de la dépense moyenne")
 monthly_spending = {
-    "Mois": ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"],
-    "Depense moyenne (JOD)": [69.2, 93.75, 95, 105, 93.75, 123.46, 132.35, 153.4, 150, 90, 106.15, 93.75]
+    "Mois": ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"],
+    "Dépense moyenne (JOD)": [69.2, 93.75, 95, 105, 93.75, 123.46, 132.35, 153.4, 150, 90, 106.15, 93.75]
 }
 monthly_df = pd.DataFrame(monthly_spending)
 
 fig_monthly = px.line(
     monthly_df,
     x="Mois",
-    y="Depense moyenne (JOD)",
-    title="Depense moyenne mensuelle par client",
+    y="Dépense moyenne (JOD)",
+    title="Dépense moyenne mensuelle par client",
     markers=True
 )
-fig_monthly.add_hline(y=monthly_df["Depense moyenne (JOD)"].mean(), 
+fig_monthly.add_hline(y=monthly_df["Dépense moyenne (JOD)"].mean(), 
                       line_dash="dash", 
-                      annotation_text=f"Moyenne: {monthly_df['Depense moyenne (JOD)'].mean():.1f} JOD")
+                      annotation_text=f"Moyenne: {monthly_df['Dépense moyenne (JOD)'].mean():.1f} JOD")
 st.plotly_chart(fig_monthly, use_container_width=True)
 
-st.caption("Source: Table 6 du document - Hotel Al Zaitonia 2003")
+st.caption("Source: Table 6 du document - Hôtel Al Zaitonia 2003")
 
 
 # ============================================================================
-# SECTION 4: RENTABILITE PAR ACTIVITE
+# SECTION 8: RENTABILITÉ PAR ACTIVITÉ
 # ============================================================================
 
-elif section == "4. Rentabilite par Activite":
-st.header("📊 Rentabilite par Activite Hoteliere")
+elif section == "8. Rentabilité par Activité":
+st.header("📊 Rentabilité par Activité Hôtelière")
 st.markdown("""
 **Formules selon le document:**
 
-- **Rentabilite hebergement** = (Revenu hebergement - Couts hebergement) / Couts hebergement * 100%
-- **Rentabilite repas et boissons** = (Revenu repas - Couts repas) / Couts repas * 100%
-- **Rentabilite autres services** = (Revenu autres - Couts autres) / Couts autres * 100%
+- **Rentabilité hébergement** = (Revenu hébergement - Coûts hébergement) / Coûts hébergement × 100%
+- **Rentabilité repas et boissons** = (Revenu repas - Coûts repas) / Coûts repas × 100%
+- **Rentabilité autres services** = (Revenu autres - Coûts autres) / Coûts autres × 100%
 """)
 
-col1, col2 = st.columns(2)
+acc_rev = st.number_input("Revenu hébergement (JOD)", value=data["accommodation_revenue"], min_value=0.0)
+acc_cost = st.number_input("Coûts hébergement (JOD)", value=data["accommodation_costs"], min_value=0.0)
+food_rev = st.number_input("Revenu repas (JOD)", value=data["food_revenue"], min_value=0.0)
+food_cost = st.number_input("Coûts repas (JOD)", value=data["food_costs"], min_value=0.0)
+other_rev = st.number_input("Revenu autres services (JOD)", value=data["other_revenue"], min_value=0.0)
+other_cost = st.number_input("Coûts autres services (JOD)", value=data["other_costs"], min_value=0.0)
 
-with col1:
-    st.subheader("Hebergement")
-    acc_rev = st.number_input("Revenu hebergement (JOD)", value=data["accommodation_revenue"], min_value=0.0)
-    acc_cost = st.number_input("Couts hebergement (JOD)", value=data["accommodation_costs"], min_value=0.0)
-    
-    st.subheader("Repas et boissons")
-    food_rev = st.number_input("Revenu repas (JOD)", value=data["food_revenue"], min_value=0.0)
-    food_cost = st.number_input("Couts repas (JOD)", value=data["food_costs"], min_value=0.0)
-    
-with col2:
-    st.subheader("Autres services")
-    other_rev = st.number_input("Revenu autres services (JOD)", value=data["other_revenue"], min_value=0.0)
-    other_cost = st.number_input("Couts autres services (JOD)", value=data["other_costs"], min_value=0.0)
+acc_profit = acc_rev - acc_cost
+food_profit = food_rev - food_cost
+other_profit = other_rev - other_cost
 
-profitability = calculate_activity_profitability(
-    acc_rev, acc_cost, food_rev, food_cost, other_rev, other_cost
-)
+acc_rentability = (acc_profit / acc_cost) * 100 if acc_cost > 0 else 0
+food_rentability = (food_profit / food_cost) * 100 if food_cost > 0 else 0
+other_rentability = (other_profit / other_cost) * 100 if other_cost > 0 else 0
 
-st.subheader("📈 Resultats de rentabilite")
+st.subheader("📈 Résultats de rentabilité")
 
-col_prof1, col_prof2, col_prof3 = st.columns(3)
-col_prof1.metric("Rentabilite Hebergement", f"{profitability['Rentabilite hebergement (%)']:.1f}%")
-col_prof2.metric("Rentabilite Repas", f"{profitability['Rentabilite repas et boissons (%)']:.1f}%")
-col_prof3.metric("Rentabilite Autres services", f"{profitability['Rentabilite autres services (%)']:.1f}%")
+col1, col2, col3 = st.columns(3)
+col1.metric("Rentabilité Hébergement", f"{acc_rentability:.1f}%", delta=f"{acc_profit:,.0f} JOD")
+col2.metric("Rentabilité Repas", f"{food_rentability:.1f}%", delta=f"{food_profit:,.0f} JOD")
+col3.metric("Rentabilité Autres services", f"{other_rentability:.1f}%", delta=f"{other_profit:,.0f} JOD")
 
 # Graphique
 profit_rates = {
-    "Hebergement": profitability['Rentabilite hebergement (%)'],
-    "Repas et boissons": profitability['Rentabilite repas et boissons (%)'],
-    "Autres services": profitability['Rentabilite autres services (%)']
+    "Hébergement": acc_rentability,
+    "Repas et boissons": food_rentability,
+    "Autres services": other_rentability
 }
 
 fig = px.bar(
     x=list(profit_rates.keys()),
     y=list(profit_rates.values()),
-    title="Taux de rentabilite par activite",
-    labels={"x": "Activite", "y": "Taux de rentabilite (%)"},
+    title="Taux de rentabilité par activité",
+    labels={"x": "Activité", "y": "Taux de rentabilité (%)"},
     color=list(profit_rates.values()),
     color_continuous_scale="Greens"
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# Donnees mensuelles de l'etude (Table 7)
-st.subheader("📅 Rentabilite mensuelle par activite - Hotel Al Zaitonia")
-monthly_profit = {
-    "Mois": ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"],
-    "Hebergement (%)": [49.84, 56.00, 67.90, 64.29, 56.00, 60.75, 68.00, 58.67, 60.00, 60.00, 70.65, 64.00],
-    "Repas (%)": [28.49, 24.80, 23.69, 21.43, 24.80, 24.68, 25.20, 34.22, 35.00, 16.00, 22.28, 24.80],
-    "Autres (%)": [22, 19, 8, 14, 19, 15, 7, 7, 5, 24, 7, 11]
-}
-monthly_df = pd.DataFrame(monthly_profit)
-
-fig_monthly = px.line(
-    monthly_df,
-    x="Mois",
-    y=["Hebergement (%)", "Repas (%)", "Autres (%)"],
-    title="Evolution mensuelle de la rentabilite par activite",
-    markers=True
-)
-st.plotly_chart(fig_monthly, use_container_width=True)
-
-st.caption("Source: Table 7 du document - Hotel Al Zaitonia 2003")
+st.caption("Source: Table 7 du document - Hôtel Al Zaitonia 2003")
 
 
 # ============================================================================
-# SECTION 5: TAUX DE COUTS D'EXPLOITATION
+# SECTION 9: TAUX DE COÛTS D'EXPLOITATION
 # ============================================================================
 
-elif section == "5. Taux de Couts d'Exploitation":
-st.header("📉 Taux de Couts d'Exploitation")
+elif section == "9. Taux de Coûts d'Exploitation":
+st.header("📉 Taux de Coûts d'Exploitation")
 st.markdown("""
-**Couts directs (Formules):**
-- Taux couts directs hebergement = Couts hebergement / Revenu hebergement * 100%
-- Taux couts directs repas = Couts repas / Revenu repas * 100%
-- Taux couts directs autres = Couts autres / Revenu autres * 100%
+**Coûts directs (Formules):**
+- Taux coûts directs hébergement = Coûts hébergement / Revenu hébergement × 100%
+- Taux coûts directs repas = Coûts repas / Revenu repas × 100%
+- Taux coûts directs autres = Coûts autres / Revenu autres × 100%
 
-**Couts indirects (Formules):**
-- Taux de promotion = Couts promotion / Revenu total * 100%
-- Taux d'energie = Couts energie / Revenu total * 100%
-- Taux de maintenance = Couts maintenance / Revenu total * 100%
-- Taux administratif = Couts administratifs / Revenu total * 100%
+**Coûts indirects (Formules):**
+- Taux de promotion = Coûts promotion / Revenu total × 100%
+- Taux d'énergie = Coûts énergie / Revenu total × 100%
+- Taux de maintenance = Coûts maintenance / Revenu total × 100%
+- Taux administratif = Coûts administratifs / Revenu total × 100%
 """)
+
+total_revenue = st.number_input("Revenu total (JOD)", value=data["total_revenue"], min_value=0.0)
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Couts directs")
-    acc_rev = st.number_input("Revenu hebergement (JOD)", value=data["accommodation_revenue"], min_value=0.0, key="dir_acc_rev")
-    acc_cost = st.number_input("Couts hebergement (JOD)", value=data["accommodation_costs"], min_value=0.0, key="dir_acc_cost")
-    food_rev = st.number_input("Revenu repas (JOD)", value=data["food_revenue"], min_value=0.0, key="dir_food_rev")
-    food_cost = st.number_input("Couts repas (JOD)", value=data["food_costs"], min_value=0.0, key="dir_food_cost")
-    other_rev = st.number_input("Revenu autres (JOD)", value=data["other_revenue"], min_value=0.0, key="dir_other_rev")
-    other_cost = st.number_input("Couts autres (JOD)", value=data["other_costs"], min_value=0.0, key="dir_other_cost")
+    st.subheader("Coûts directs")
+    acc_cost = st.number_input("Coûts hébergement (JOD)", value=data["accommodation_costs"], min_value=0.0)
+    acc_rev = st.number_input("Revenu hébergement (JOD)", value=data["accommodation_revenue"], min_value=0.0)
+    food_cost = st.number_input("Coûts repas (JOD)", value=data["food_costs"], min_value=0.0)
+    food_rev = st.number_input("Revenu repas (JOD)", value=data["food_revenue"], min_value=0.0)
+    other_cost = st.number_input("Coûts autres (JOD)", value=data["other_costs"], min_value=0.0)
+    other_rev = st.number_input("Revenu autres (JOD)", value=data["other_revenue"], min_value=0.0)
     
 with col2:
-    st.subheader("Couts indirects")
-    total_revenue = st.number_input("Revenu total (JOD)", value=data["total_revenue"], min_value=0.0, key="ind_total")
-    sales_promo = st.number_input("Couts de promotion (JOD)", value=data["sales_promotion_costs"], min_value=0.0)
-    energy_costs = st.number_input("Couts energie (JOD)", value=data["energy_costs"], min_value=0.0)
-    maintenance_costs = st.number_input("Couts maintenance (JOD)", value=data["maintenance_costs"], min_value=0.0)
-    admin_costs = st.number_input("Couts administratifs (JOD)", value=data["admin_costs"], min_value=0.0)
+    st.subheader("Coûts indirects")
+    sales_promo = st.number_input("Coûts de promotion (JOD)", value=data["sales_promotion_costs"], min_value=0.0)
+    energy_costs = st.number_input("Coûts énergie (JOD)", value=data["energy_costs"], min_value=0.0)
+    maintenance_costs = st.number_input("Coûts maintenance (JOD)", value=data["maintenance_costs"], min_value=0.0)
+    admin_costs = st.number_input("Coûts administratifs (JOD)", value=data["admin_costs"], min_value=0.0)
 
-cost_rates = calculate_cost_rates(
-    acc_cost, acc_rev, food_cost, food_rev, other_cost, other_rev,
-    sales_promo, total_revenue, energy_costs, maintenance_costs, admin_costs
-)
+direct_acc_rate = (acc_cost / acc_rev) * 100 if acc_rev > 0 else 0
+direct_food_rate = (food_cost / food_rev) * 100 if food_rev > 0 else 0
+direct_other_rate = (other_cost / other_rev) * 100 if other_rev > 0 else 0
 
-st.subheader("📊 Resultats des taux de couts")
+promo_rate = (sales_promo / total_revenue) * 100 if total_revenue > 0 else 0
+energy_rate = (energy_costs / total_revenue) * 100 if total_revenue > 0 else 0
+maintenance_rate = (maintenance_costs / total_revenue) * 100 if total_revenue > 0 else 0
+admin_rate = (admin_costs / total_revenue) * 100 if total_revenue > 0 else 0
 
-cost_df = pd.DataFrame([
-    {"Type de cout": k, "Taux (%)": f"{v:.2f}%"}
-    for k, v in cost_rates.items()
-])
-st.dataframe(cost_df, use_container_width=True)
+st.subheader("📊 Résultats des taux de coûts")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("**Coûts directs**")
+    st.metric("Hébergement", f"{direct_acc_rate:.1f}%")
+    st.metric("Repas et boissons", f"{direct_food_rate:.1f}%")
+    st.metric("Autres services", f"{direct_other_rate:.1f}%")
+with col2:
+    st.markdown("**Coûts indirects**")
+    st.metric("Administratifs et généraux", f"{admin_rate:.1f}%")
+    st.metric("Promotion", f"{promo_rate:.1f}%")
+    st.metric("Énergie et éclairage", f"{energy_rate:.1f}%")
+    st.metric("Maintenance et réparation", f"{maintenance_rate:.1f}%")
 
 # Graphique
-fig = make_subplots(rows=2, cols=1, subplot_titles=("Couts directs", "Couts indirects"))
-
-direct_costs = {k: v for k, v in cost_rates.items() if "Couts directs" in k}
-indirect_costs = {k: v for k, v in cost_rates.items() if "Couts directs" not in k}
+fig = make_subplots(rows=1, cols=2, subplot_titles=("Coûts directs", "Coûts indirects"))
 
 fig.add_trace(
-    go.Bar(x=list(direct_costs.keys()), y=list(direct_costs.values()), name="Couts directs", marker_color="coral"),
+    go.Bar(x=["Hébergement", "Restauration", "Autres"], 
+           y=[direct_acc_rate, direct_food_rate, direct_other_rate],
+           marker_color="coral"),
     row=1, col=1
 )
+
 fig.add_trace(
-    go.Bar(x=list(indirect_costs.keys()), y=list(indirect_costs.values()), name="Couts indirects", marker_color="lightblue"),
-    row=2, col=1
+    go.Bar(x=["Administratifs", "Promotion", "Énergie", "Maintenance"],
+           y=[admin_rate, promo_rate, energy_rate, maintenance_rate],
+           marker_color="lightblue"),
+    row=1, col=2
 )
 
-fig.update_layout(height=600, showlegend=False, title_text="Analyse des couts d'exploitation")
-fig.update_xaxes(tickangle=45)
+fig.update_layout(height=500, showlegend=False)
 st.plotly_chart(fig, use_container_width=True)
 
-# Donnees mensuelles (Table 9, 11)
-st.subheader("📅 Evolution mensuelle des couts - Hotel Al Zaitonia")
-
-monthly_direct = {
-    "Mois": ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"],
-    "Hebergement (%)": [43.48, 28.57, 23.26, 22.22, 28.57, 20.00, 16.67, 16.67, 16.67, 25.00, 20.00, 22.22],
-    "Repas (%)": [37.75, 76.92, 33.33, 33.33, 32.26, 24.62, 22.49, 14.29, 14.29, 46.88, 31.71, 47.62],
-    "Autres (%)": [40.00, 33.33, 75.00, 40.00, 33.33, 26.92, 66.67, 55.00, 64.62, 66.67, 80.00, 57.14]
-}
-monthly_df = pd.DataFrame(monthly_direct)
-
-fig_monthly = px.line(
-    monthly_df,
-    x="Mois",
-    y=["Hebergement (%)", "Repas (%)", "Autres (%)"],
-    title="Taux de couts directs mensuels par activite",
-    markers=True
-)
-st.plotly_chart(fig_monthly, use_container_width=True)
-
-st.caption("Source: Table 9 (couts directs) et Table 11 (couts indirects) du document")
+st.caption("Source: Table 9 et Table 11 du document")
 
 
 # ============================================================================
-# SECTION 6: COMPARAISON AVEC LES NORMES SECTORIELLES
+# SECTION 10: COMPARAISON AVEC LES NORMES SECTORIELLES
 # ============================================================================
 
-elif section == "6. Comparaison avec les Normes Sectorielles":
-st.header("🏆 Comparaison avec les Normes Sectorielles Jordaniennes")
+elif section == "10. Comparaison avec les Normes Sectorielles":
+st.header("🏆 Comparaison avec les Normes Sectorielles")
 st.markdown("""
-**Normes standards pour les hotels en Jordanie (Source: Ministere du Tourisme / Table 1 du document)**
+**Normes standards pour les hôtels en Jordanie (Source: Ministère du Tourisme)**
 
-Ces normes permettent d'identifier les ecarts et les axes d'amelioration.
+Ces normes permettent d'identifier les écarts et les axes d'amélioration.
 """)
 
 # Tableau des normes
-st.subheader("📋 Normes standards pour l'hotellerie jordanienne")
+st.subheader("📋 Normes standards pour l'hôtellerie")
 
 standards_df = pd.DataFrame([
-    {"Categorie": "Revenus - Hebergement", "Min": "45%", "Max": "50%"},
-    {"Categorie": "Revenus - Repas et boissons", "Min": "35%", "Max": "40%"},
-    {"Categorie": "Revenus - Autres services", "Min": "5%", "Max": "10%"},
-    {"Categorie": "Couts directs - Hebergement", "Min": "15%", "Max": "25%"},
-    {"Categorie": "Couts directs - Repas", "Min": "65%", "Max": "80%"},
-    {"Categorie": "Couts directs - Autres", "Min": "40%", "Max": "70%"},
-    {"Categorie": "Couts indirects - Administratifs", "Min": "5%", "Max": "10%"},
-    {"Categorie": "Couts indirects - Promotion", "Min": "5%", "Max": "10%"},
-    {"Categorie": "Couts indirects - Energie", "Min": "4%", "Max": "10%"},
-    {"Categorie": "Couts indirects - Maintenance", "Min": "3%", "Max": "5%"}
-], index=range(1, 11))
+    {"Catégorie": "Revenus - Hébergement", "Min": "45%", "Max": "50%", "Hôtel": f"{data['accommodation_revenue']/data['total_revenue']*100:.1f}%" if data['total_revenue'] > 0 else "N/A"},
+    {"Catégorie": "Revenus - Repas et boissons", "Min": "35%", "Max": "40%", "Hôtel": f"{data['food_revenue']/data['total_revenue']*100:.1f}%" if data['total_revenue'] > 0 else "N/A"},
+    {"Catégorie": "Revenus - Autres services", "Min": "5%", "Max": "10%", "Hôtel": f"{data['other_revenue']/data['total_revenue']*100:.1f}%" if data['total_revenue'] > 0 else "N/A"},
+    {"Catégorie": "Coûts directs - Hébergement", "Min": "15%", "Max": "25%", "Hôtel": f"{data['accommodation_costs']/data['accommodation_revenue']*100:.1f}%" if data['accommodation_revenue'] > 0 else "N/A"},
+    {"Catégorie": "Coûts directs - Repas", "Min": "65%", "Max": "80%", "Hôtel": f"{data['food_costs']/data['food_revenue']*100:.1f}%" if data['food_revenue'] > 0 else "N/A"},
+    {"Catégorie": "Coûts indirects - Administratifs", "Min": "5%", "Max": "10%", "Hôtel": f"{data['admin_costs']/data['total_revenue']*100:.1f}%" if data['total_revenue'] > 0 else "N/A"},
+], index=range(1, 7))
 st.dataframe(standards_df, use_container_width=True)
 
-# Donnees de l'hotel Al Zaitonia pour comparaison
-st.subheader("📊 Comparaison avec les performances de l'Hotel Al Zaitonia")
-
-# Calcul des ratios de l'hotel
-total_rev = data["total_revenue"]
-hotel_revenue_pct = {
-    "Hebergement": (data["accommodation_revenue"] / total_rev) * 100 if total_rev > 0 else 0,
-    "Repas et boissons": (data["food_revenue"] / total_rev) * 100 if total_rev > 0 else 0,
-    "Autres services": (data["other_revenue"] / total_rev) * 100 if total_rev > 0 else 0
-}
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("**Structure des revenus**")
-    revenue_df = pd.DataFrame([
-        {"Source": k, "Hotel Al Zaitonia (%)": round(v, 2), 
-         "Norme min": INDUSTRY_STANDARDS["Revenue Elements"][k]["min"], 
-         "Norme max": INDUSTRY_STANDARDS["Revenue Elements"][k]["max"], 
-         "Conforme": "✅" if INDUSTRY_STANDARDS["Revenue Elements"][k]["min"] <= v <= INDUSTRY_STANDARDS["Revenue Elements"][k]["max"] else "⚠️"}
-        for k, v in hotel_revenue_pct.items()
-    ])
-    st.dataframe(revenue_df, use_container_width=True)
-    
-with col2:
-    st.markdown("**Couts indirects**")
-    hotel_indirect = {
-        "Administratifs et generaux": (data["admin_costs"] / total_rev) * 100 if total_rev > 0 else 0,
-        "Promotion": (data["sales_promotion_costs"] / total_rev) * 100 if total_rev > 0 else 0,
-        "Energie et eclairage": (data["energy_costs"] / total_rev) * 100 if total_rev > 0 else 0,
-        "Maintenance et reparation": (data["maintenance_costs"] / total_rev) * 100 if total_rev > 0 else 0
-    }
-    
-    indirect_df = pd.DataFrame([
-        {"Source": k, "Hotel Al Zaitonia (%)": round(v, 2), 
-         "Norme min": INDUSTRY_STANDARDS["Indirect Costs"][k]["min"],
-         "Norme max": INDUSTRY_STANDARDS["Indirect Costs"][k]["max"], 
-         "Conforme": "✅" if INDUSTRY_STANDARDS["Indirect Costs"][k]["min"] <= v <= INDUSTRY_STANDARDS["Indirect Costs"][k]["max"] else "⚠️"}
-        for k, v in hotel_indirect.items()
-    ])
-    st.dataframe(indirect_df, use_container_width=True)
-
 # Graphique de comparaison
-st.subheader("📈 Ecarts par rapport aux normes")
+st.subheader("📈 Analyse des écarts")
 
-fig = make_subplots(rows=2, cols=2, subplot_titles=("Revenus", "Couts indirects"))
+categories = ["Hébergement", "Restauration", "Autres services"]
+hotel_values = [
+    data['accommodation_revenue']/data['total_revenue']*100 if data['total_revenue'] > 0 else 0,
+    data['food_revenue']/data['total_revenue']*100 if data['total_revenue'] > 0 else 0,
+    data['other_revenue']/data['total_revenue']*100 if data['total_revenue'] > 0 else 0
+]
+norm_min = [45, 35, 5]
+norm_max = [50, 40, 10]
 
-# Revenus
-rev_names = list(hotel_revenue_pct.keys())
-rev_hotel = list(hotel_revenue_pct.values())
-rev_min = [INDUSTRY_STANDARDS["Revenue Elements"][k]["min"] for k in rev_names]
-rev_max = [INDUSTRY_STANDARDS["Revenue Elements"][k]["max"] for k in rev_names]
+fig = go.Figure()
+fig.add_trace(go.Bar(name="Hôtel", x=categories, y=hotel_values, marker_color="blue"))
+fig.add_trace(go.Bar(name="Norme min", x=categories, y=norm_min, marker_color="lightgray"))
+fig.add_trace(go.Bar(name="Norme max", x=categories, y=norm_max, marker_color="darkgray"))
 
-fig.add_trace(go.Bar(name="Hotel Al Zaitonia", x=rev_names, y=rev_hotel, marker_color="blue"), row=1, col=1)
-fig.add_trace(go.Bar(name="Norme min", x=rev_names, y=rev_min, marker_color="lightgray"), row=1, col=1)
-fig.add_trace(go.Bar(name="Norme max", x=rev_names, y=rev_max, marker_color="darkgray"), row=1, col=1)
-
-# Couts indirects
-ind_names = list(hotel_indirect.keys())
-ind_hotel = list(hotel_indirect.values())
-ind_min = [INDUSTRY_STANDARDS["Indirect Costs"][k]["min"] for k in ind_names]
-ind_max = [INDUSTRY_STANDARDS["Indirect Costs"][k]["max"] for k in ind_names]
-
-fig.add_trace(go.Bar(name="Hotel Al Zaitonia", x=ind_names, y=ind_hotel, marker_color="coral"), row=2, col=1)
-fig.add_trace(go.Bar(name="Norme min", x=ind_names, y=ind_min, marker_color="lightgray"), row=2, col=1)
-fig.add_trace(go.Bar(name="Norme max", x=ind_names, y=ind_max, marker_color="darkgray"), row=2, col=1)
-
-fig.update_layout(height=600, showlegend=True, barmode='group')
+fig.update_layout(title="Comparaison de la structure des revenus", barmode='group', height=500)
 st.plotly_chart(fig, use_container_width=True)
 
 st.info("""
-**Interpretation des ecarts selon l'etude:**
-- Les revenus d'hebergement sont superieurs a la norme (bon indicateur)
-- Les couts administratifs sont tres eleves par rapport a la norme
-- Les couts de promotion sont trop faibles
-- Les couts d'energie et maintenance sont inferieurs aux normes
+**Interprétation des écarts:**
+- Les revenus d'hébergement sont généralement supérieurs à la norme (bon indicateur)
+- Les coûts administratifs sont souvent élevés par rapport à la norme
+- Les coûts de promotion sont parfois trop faibles
 """)
 
 
 # ============================================================================
-# SECTION 7: RAPPORT COMPLET
+# SECTION 11: RAPPORT COMPLET
 # ============================================================================
 
 else:  # Rapport complet
-st.header("📑 Rapport d'Analyse Financiere Complet")
+st.header("📑 Rapport d'Analyse Financière Complet")
 st.markdown("""
-**Methodologie:** Analyse financiere appliquee au secteur hotelier selon Jawabreh et al. (2017)
+**Méthodologie:** Analyse financière appliquée au secteur hôtelier selon Jawabreh et al. (2017)
+et enrichie avec les KPIs de Fáilte Ireland.
 
-**Cas d'etude:** Hotel Al Zaitonia - 3 etoiles, Aqaba, Jordanie
+**Cas d'étude:** Hôtel Al Zaitonia - 3 étoiles, Aqaba, Jordanie
 """)
 
-# Execution de toutes les analyses
-change_percent = 0.10
-sensitivity_results, base_net_income = calculate_profit_sensitivity(
-    data["guests"], data["avg_spending"], data["var_material"], 
-    data["var_wages"], data["admin_exp"], data["general_exp"], 
-    change_percent
-)
+# Calcul de tous les KPIs
+kpis = calculate_hotel_kpis(data)
+rooms_kpis = calculate_rooms_kpis(data)
+fandb_kpis = calculate_fandb_kpis(data)
+spa_kpis = calculate_spa_kpis(data)
 
-occupancy = calculate_occupancy_rates(
-    data["occupied_rooms"], data["available_rooms"],
-    data["occupied_beds"], data["available_beds"],
-    data["occupied_suites"], data["available_suites"],
-    data["meals_served"], data["seats_capacity"]
-)
-
-spending = calculate_guest_spending_rates(
-    data["total_revenue"], data["num_guests"],
-    data["accommodation_revenue"], data["food_revenue"],
-    data["other_revenue"], data["num_meals"], data["total_nights"]
-)
-
-profitability = calculate_activity_profitability(
-    data["accommodation_revenue"], data["accommodation_costs"],
-    data["food_revenue"], data["food_costs"],
-    data["other_revenue"], data["other_costs"]
-)
-
-costs = calculate_cost_rates(
-    data["accommodation_costs"], data["accommodation_revenue"],
-    data["food_costs"], data["food_revenue"],
-    data["other_costs"], data["other_revenue"],
-    data["sales_promotion_costs"], data["total_revenue"],
-    data["energy_costs"], data["maintenance_costs"],
-    data["admin_costs"]
-)
-
-# Affichage des KPI principaux
-st.subheader("🎯 Indicateurs Cles de Performance (KPI)")
+# Scorecard
+st.subheader("🎯 Tableau de bord stratégique")
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Benefice net annuel", f"{base_net_income:,.0f} JOD")
-col2.metric("Taux d'occupation", f"{occupancy['Taux d occupation chambres']:.1f}%")
-col3.metric("Depense moyenne/client", f"{spending['Depense moyenne generale (JOD)']:.1f} JOD")
-col4.metric("Rentabilite hebergement", f"{profitability['Rentabilite hebergement (%)']:.1f}%")
+with col1:
+    st.metric("Occupancy", f"{kpis['Occupancy (%)']:.1f}%")
+    st.metric("ADR", f"{kpis['ADR (€)']:.2f}€")
+with col2:
+    st.metric("RevPAR", f"{kpis['RevPAR (€)']:.2f}€")
+    st.metric("TRevPAR", f"{kpis['TRevPAR (€)']:.2f}€")
+with col3:
+    st.metric("GOP %", f"{kpis['Gross Operating Profit (%)']:.1f}%")
+    st.metric("EBITDA %", f"{kpis['EBITDA (%)']:.1f}%")
+with col4:
+    st.metric("F&B Margin", f"{fandb_kpis['Gross Food Margin (%)']:.1f}%")
+    st.metric("Spa TRU", f"{spa_kpis['Treatment Room Utilisation (TRU) (%)']:.1f}%")
 
-# Classement des facteurs de sensibilite
-st.subheader("🔍 Classement des facteurs controlants (Multiplicateurs de profit)")
+# Classement des facteurs de sensibilité
+sensitivity_results, base_net_income = calculate_profit_sensitivity(
+    data["guests"], data["avg_spending"], data["var_material"], 
+    data["var_wages"], data["admin_exp"], data["general_exp"], 0.10
+)
+
+st.subheader("🔍 Top 3 des leviers de profitabilité")
 ranking = sorted(
     [(factor, res["multiplier"]) for factor, res in sensitivity_results.items()],
     key=lambda x: x[1],
     reverse=True
-)
-ranking_df = pd.DataFrame(ranking[:6], columns=["Facteur", "Multiplicateur"])
-st.dataframe(ranking_df, use_container_width=True)
+)[:3]
 
-# Graphique radar des indicateurs
-st.subheader("📊 Indicateurs de performance")
+for i, (factor, multiplier) in enumerate(ranking, 1):
+    st.markdown(f"**{i}. {factor}** : Multiplicateur = {multiplier:.2f}x")
+
+# Recommandations
+st.subheader("📝 Recommandations stratégiques")
+
+recommendations = []
+if kpis['Occupancy (%)'] < 65:
+    recommendations.append("🔴 **Améliorer l'occupation** : Mettre en place des offres promotionnelles hors saison")
+if kpis['Gross Operating Profit (%)'] < 30:
+    recommendations.append("🟡 **Optimiser la profitabilité** : Réduire les coûts fixes et variables")
+if fandb_kpis['Gross Food Margin (%)'] < 60:
+    recommendations.append("🟡 **Améliorer la marge F&B** : Revoir les prix et optimiser les achats")
+if spa_kpis['Treatment Room Utilisation (TRU) (%)'] < 60:
+    recommendations.append("🟡 **Augmenter l'occupation du spa** : Promouvoir les forfaits et réservations")
+if len(recommendations) == 0:
+    recommendations.append("✅ **Performance satisfaisante** - Maintenir les efforts actuels")
+
+for rec in recommendations:
+    st.markdown(rec)
+
+# Graphique radar
+st.subheader("📊 Indicateurs de performance - Vue radar")
 
 radar_data = {
-    "Taux d'occupation": occupancy['Taux d occupation chambres'],
-    "Depense/client": spending['Depense moyenne generale (JOD)'] / 200 * 100,
-    "Rentabilite hebergement": profitability['Rentabilite hebergement (%)'],
-    "Rentabilite repas": profitability['Rentabilite repas et boissons (%)'],
-    "Conformite couts hebergement": max(0, 100 - costs['Couts directs - Hebergement (%)'])
+    "Occupancy": kpis['Occupancy (%)'],
+    "ADR (normalisé)": min(100, kpis['ADR (€)'] / 2),
+    "GOP %": kpis['Gross Operating Profit (%)'],
+    "F&B Margin": fandb_kpis['Gross Food Margin (%)'],
+    "Spa TRU": spa_kpis['Treatment Room Utilisation (TRU) (%)']
 }
 
 fig = go.Figure(data=go.Scatterpolar(
@@ -594,53 +771,39 @@ fig = go.Figure(data=go.Scatterpolar(
     fill='toself',
     marker_color='blue'
 ))
-fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False)
+fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), 
+                  showlegend=False, height=500)
 st.plotly_chart(fig, use_container_width=True)
 
-# Resume et recommandations
-st.subheader("📝 Resume et Recommandations (selon l'etude)")
-
-st.markdown("""
-**Principaux resultats:**
-
-1. **Facteurs controlants des revenus:** Le pouvoir de depense moyen par client est le facteur le plus influent sur la rentabilite, suivi du nombre de clients
-
-2. **Rentabilite par activite:** L'hebergement represente l'activite la plus rentable
-
-3. **Structure des couts:** Les couts variables et fixes affectent directement la rentabilite et necessitent une planification continue
-
-**Recommandations de l'auteur:**
-- Accorder plus d'attention aux facteurs lies aux revenus (pouvoir de depense des clients)
-- Augmenter les budgets de promotion (actuellement inferieurs aux normes sectorielles)
-- Mettre en place un systeme de suivi mensuel des ecarts par rapport aux normes
-- Developper une identite distinctive pour le secteur hotelier jordanien
-""")
-
-# Tableau recapitulatif des formules
-with st.expander("📚 Voir toutes les formules utilisees"):
+# Tableau récapitulatif des formules
+with st.expander("📚 Voir toutes les formules utilisées"):
     st.markdown("""
-    ### Formules d'Analyse Financiere Hoteliere
+    ### Formules d'Analyse Financière Hôtelière
     
-    **Analyse de sensibilite du profit:**
-    - Multiplicateur de profit = (Δ% Benefice net) / (Δ% Facteur controlant)
+    **KPIs Globaux:**
+    - Occupancy = (Chambres occupées / Chambres disponibles) × 100%
+    - ADR = Revenu hébergement / Chambres occupées
+    - RevPAR = Revenu hébergement / Chambres disponibles = Occupancy × ADR
+    - TRevPAR = Revenu total / Chambres disponibles
+    - TRevPOR = Revenu total / Chambres occupées
+    - GOP % = (Revenu total - Coûts d'exploitation) / Revenu total × 100%
+    - EBITDA % = EBITDA / Revenu total × 100%
     
-    **Taux d'occupation:**
-    - Taux occupation chambres = (Chambres occupees / Chambres disponibles) * 100%
-    - Taux occupation lits = (Lits occupes / Lits disponibles) * 100%
-    - Taux occupation restaurant = (Repas servis / Capacite sieges) * 100%
+    **KPIs Restauration:**
+    - Gross Food Margin = (Revenu food - COGS food) / Revenu food × 100%
+    - Average Spend per Cover = Revenu F&B / Nombre de couverts
+    - Table Turn Rate = Nombre de tables servies / Nombre de tables disponibles
+    - Breakfast sit down rate = Petit-déjeuners servis / Nuits client × 100%
     
-    **Taux de depense des clients:**
-    - Depense moyenne generale = Revenu total / Nombre de clients
-    - Depense moyenne hebergement = Revenu hebergement / Nombre de clients
-    - Duree moyenne sejour = Nombre total de nuits / Nombre de clients
+    **KPIs Spa:**
+    - TRU = Heures de traitement vendues / Heures disponibles × 100%
+    - ATR = Revenu traitements / Nombre de traitements
+    - Guest Capture Rate = Clients spa / Clients hôtel × 100%
+    - Therapist Utilisation = Heures prestées / Heures disponibles × 100%
     
-    **Taux de rentabilite:**
-    - Rentabilite activite = (Revenu - Cout) / Cout * 100%
-    
-    **Taux de couts:**
-    - Taux cout direct = Cout activite / Revenu activite * 100%
-    - Taux cout indirect = Cout indirect / Revenu total * 100%
+    **Analyse de sensibilité:**
+    - Multiplicateur de profit = (Δ% Bénéfice net) / (Δ% Facteur contrôlant)
     """)
 
 st.markdown("---")
-st.caption("🏨 Dashboard d'Analyse Financiere Hoteliere | Base sur Jawabreh et al. (2017) - International Journal of Economics and Financial Issues")
+st.caption("🏨 Dashboard d'Analyse Financière Hôtelière | Basé sur Jawabreh et al. (2017) et Fáilte Ireland KPI Framework")
