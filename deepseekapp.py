@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
 
 st.set_page_config(
     page_title="Dashboard KPIs Hôteliers",
@@ -79,6 +80,16 @@ if "hotel_data" not in st.session_state:
         "fixed_general_input": 25000,
     }
 
+# Initialisation des données mensuelles
+if "monthly_data" not in st.session_state:
+    st.session_state.monthly_data = {
+        "months": ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"],
+        "occupancy": [55, 58, 62, 68, 72, 78, 82, 80, 75, 68, 60, 56],
+        "adr": [95, 98, 102, 108, 115, 125, 135, 130, 120, 110, 100, 96],
+        "revpar": [52, 57, 63, 73, 83, 98, 111, 104, 90, 75, 60, 54],
+        "avg_spending": [85, 88, 92, 98, 105, 115, 125, 120, 110, 100, 90, 86],
+    }
+
 # Sidebar - Navigation
 st.sidebar.header("🏨 Configuration")
 hotel_name = st.sidebar.text_input("Nom de l'hôtel", value=st.session_state.hotel_data["hotel_name"])
@@ -92,6 +103,7 @@ section = st.sidebar.selectbox(
     "Choisissez une section",
     [
         "🏆 Tableau de bord général",
+        "📅 Données mensuelles",
         "📈 Analyse de sensibilité",
         "🛏️ Département Hébergement",
         "🍽️ Département Restauration",
@@ -159,6 +171,13 @@ if st.sidebar.button("🔄 Charger des données exemple"):
         "fixed_admin_input": 34500,
         "fixed_general_input": 25000,
     }
+    st.session_state.monthly_data = {
+        "months": ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"],
+        "occupancy": [55, 58, 62, 68, 72, 78, 82, 80, 75, 68, 60, 56],
+        "adr": [95, 98, 102, 108, 115, 125, 135, 130, 120, 110, 100, 96],
+        "revpar": [52, 57, 63, 73, 83, 98, 111, 104, 90, 75, 60, 54],
+        "avg_spending": [85, 88, 92, 98, 105, 115, 125, 120, 110, 100, 90, 86],
+    }
     st.sidebar.success("Données exemple chargées!")
     st.rerun()
 
@@ -168,7 +187,6 @@ if st.sidebar.button("🔄 Charger des données exemple"):
 # ============================================================================
 
 def calculate_overall_kpis(data):
-    """Calcule les KPIs généraux de l'hôtel"""
     total_revenue = data["total_revenue"]
     rooms_revenue = data["rooms_revenue"]
     available_rooms = data["total_available_rooms"]
@@ -202,7 +220,6 @@ def calculate_overall_kpis(data):
 
 
 def calculate_rooms_kpis(data):
-    """Calcule les KPIs du département Hébergement"""
     rooms_revenue = data["rooms_revenue"]
     rooms_cost = data["rooms_cost"]
     rooms_profit = rooms_revenue - rooms_cost
@@ -223,7 +240,6 @@ def calculate_rooms_kpis(data):
 
 
 def calculate_fandb_kpis(data):
-    """Calcule les KPIs du département Restauration"""
     food_revenue = data["food_revenue"]
     beverage_revenue = data["beverage_revenue"]
     total_revenue = food_revenue + beverage_revenue
@@ -254,7 +270,6 @@ def calculate_fandb_kpis(data):
 
 
 def calculate_spa_kpis(data):
-    """Calcule les KPIs du département Spa & Loisirs"""
     spa_revenue = data["spa_revenue"]
     spa_cost = data["spa_cost"]
     spa_profit = spa_revenue - spa_cost
@@ -291,7 +306,6 @@ def calculate_spa_kpis(data):
 
 
 def calculate_guest_spending(data):
-    """Calcule les dépenses moyennes par client"""
     total_revenue = data["total_revenue"]
     num_guests = data["total_guests"]
     rooms_revenue = data["rooms_revenue"]
@@ -312,7 +326,6 @@ def calculate_guest_spending(data):
 
 
 def calculate_profit_sensitivity(data, change_percent=0.10):
-    """Calcule les multiplicateurs de profit"""
     guests = data["num_guests_input"]
     avg_spending = data["avg_spending_input"]
     var_material = data["var_material_input"]
@@ -372,27 +385,16 @@ def calculate_profit_sensitivity(data, change_percent=0.10):
     return results, net_income
 
 
-def get_industry_benchmarks():
-    """Retourne les benchmarks du secteur"""
-    return {
-        "Occupancy": {"min": 65, "max": 75, "unite": "%"},
-        "ADR": {"min": 100, "max": 150, "unite": "€"},
-        "RevPAR": {"min": 70, "max": 110, "unite": "€"},
-        "GOP %": {"min": 30, "max": 40, "unite": "%"},
-        "Payroll %": {"min": 25, "max": 35, "unite": "%"},
-        "Food Cost %": {"min": 28, "max": 35, "unite": "%"},
-        "Beverage Cost %": {"min": 20, "max": 30, "unite": "%"},
-        "Spa TRU": {"min": 60, "max": 75, "unite": "%"},
-    }
-
-
 # ============================================================================
-# INTERFACE DE SAISIE DES DONNÉES
+# SECTION 1: TABLEAU DE BORD GÉNÉRAL
 # ============================================================================
 
-def show_data_input():
-    """Affiche le formulaire de saisie des données"""
-    with st.expander("📝 Saisie des données de l'hôtel", expanded=False):
+if section == "🏆 Tableau de bord général":
+    st.header(f"🏆 Tableau de bord - {st.session_state.hotel_data['hotel_name']}")
+    st.caption(f"Période: {st.session_state.hotel_data['period']}")
+    
+    # Interface de saisie des données
+    with st.expander("📝 Saisie des données annuelles de l'hôtel", expanded=False):
         st.markdown("### Données générales")
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -434,37 +436,11 @@ def show_data_input():
         with col1:
             st.session_state.hotel_data["spa_revenue"] = st.number_input("Revenu spa (€)", value=st.session_state.hotel_data["spa_revenue"], min_value=0)
             st.session_state.hotel_data["spa_cost"] = st.number_input("Coûts spa (€)", value=st.session_state.hotel_data["spa_cost"], min_value=0)
-            st.session_state.hotel_data["treatment_hours_sold"] = st.number_input("Heures traitement vendues", value=st.session_state.hotel_data["treatment_hours_sold"], min_value=0)
         with col2:
             st.session_state.hotel_data["leisure_revenue"] = st.number_input("Revenu centre loisirs (€)", value=st.session_state.hotel_data["leisure_revenue"], min_value=0)
             st.session_state.hotel_data["num_members"] = st.number_input("Nombre de membres", value=st.session_state.hotel_data["num_members"], min_value=0)
-            st.session_state.hotel_data["spa_customers"] = st.number_input("Nombre clients spa", value=st.session_state.hotel_data["spa_customers"], min_value=0)
-        
-        st.markdown("### 📊 Analyse de sensibilité")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.session_state.hotel_data["num_guests_input"] = st.number_input("Nombre de clients (base)", value=st.session_state.hotel_data["num_guests_input"], min_value=0)
-            st.session_state.hotel_data["avg_spending_input"] = st.number_input("Dépense moyenne (€)", value=st.session_state.hotel_data["avg_spending_input"], min_value=0)
-        with col2:
-            st.session_state.hotel_data["var_material_input"] = st.number_input("Coût matériaux/client (€)", value=st.session_state.hotel_data["var_material_input"], min_value=0)
-            st.session_state.hotel_data["var_wages_input"] = st.number_input("Salaires variables/client (€)", value=st.session_state.hotel_data["var_wages_input"], min_value=0)
-        with col3:
-            st.session_state.hotel_data["fixed_admin_input"] = st.number_input("Frais administratifs fixes (€)", value=st.session_state.hotel_data["fixed_admin_input"], min_value=0)
-            st.session_state.hotel_data["fixed_general_input"] = st.number_input("Frais généraux fixes (€)", value=st.session_state.hotel_data["fixed_general_input"], min_value=0)
-
-
-# ============================================================================
-# SECTION 1: TABLEAU DE BORD GÉNÉRAL
-# ============================================================================
-
-if section == "🏆 Tableau de bord général":
-    st.header(f"🏆 Tableau de bord - {st.session_state.hotel_data['hotel_name']}")
-    st.caption(f"Période: {st.session_state.hotel_data['period']}")
-    
-    show_data_input()
     
     kpis = calculate_overall_kpis(st.session_state.hotel_data)
-    benchmarks = get_industry_benchmarks()
     
     # KPIs principaux
     st.subheader("📊 Indicateurs clés de performance")
@@ -508,32 +484,152 @@ if section == "🏆 Tableau de bord général":
     
     costs_by_dept = {
         "Hébergement": st.session_state.hotel_data["rooms_cost"],
-        "Restauration": st.session_state.hotel_data["food_cost"] + st.session_state.hotel_data["beverage_cost"] + st.session_state.hotel_data["food_payroll"],
+        "Restauration (COGS)": st.session_state.hotel_data["food_cost"] + st.session_state.hotel_data["beverage_cost"],
+        "Payroll F&B": st.session_state.hotel_data["food_payroll"],
         "Spa": st.session_state.hotel_data["spa_cost"],
-        "Loisirs": st.session_state.hotel_data["leisure_cost"],
         "Administratifs": st.session_state.hotel_data["admin_costs"],
         "Marketing": st.session_state.hotel_data["marketing_costs"],
+        "Énergie": st.session_state.hotel_data["energy_costs"],
+        "Maintenance": st.session_state.hotel_data["maintenance_costs"],
     }
     
     fig2 = px.bar(x=list(costs_by_dept.keys()), y=list(costs_by_dept.values()), 
-                  title="Coûts par département", color=list(costs_by_dept.values()),
+                  title="Coûts par catégorie", color=list(costs_by_dept.values()),
                   color_continuous_scale="Reds")
     fig2.update_layout(xaxis_tickangle=45, height=400)
     st.plotly_chart(fig2, use_container_width=True)
     
-    # Évolution mensuelle simulée
+    # Évolution mensuelle de l'occupation (depuis les données mensuelles)
     st.subheader("📅 Évolution mensuelle de l'occupation")
-    months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
-    occupancy_trend = [55, 58, 62, 68, 72, 78, 82, 80, 75, 68, 60, 56]
     
-    fig3 = px.line(x=months, y=occupancy_trend, markers=True, title="Taux d'occupation mensuel")
-    fig3.add_hline(y=kpis["Occupancy (%)"], line_dash="dash", annotation_text=f"Moyenne: {kpis['Occupancy (%)']:.1f}%")
+    monthly_df = pd.DataFrame({
+        "Mois": st.session_state.monthly_data["months"],
+        "Taux d'occupation (%)": st.session_state.monthly_data["occupancy"]
+    })
+    
+    fig3 = px.line(monthly_df, x="Mois", y="Taux d'occupation (%)", 
+                   markers=True, title="Taux d'occupation mensuel")
+    fig3.add_hline(y=kpis["Occupancy (%)"], line_dash="dash", 
+                   annotation_text=f"Moyenne annuelle: {kpis['Occupancy (%)']:.1f}%")
     fig3.update_layout(xaxis_title="Mois", yaxis_title="Taux d'occupation (%)")
     st.plotly_chart(fig3, use_container_width=True)
 
 
 # ============================================================================
-# SECTION 2: ANALYSE DE SENSIBILITÉ
+# SECTION 2: DONNÉES MENSUELLES
+# ============================================================================
+
+elif section == "📅 Données mensuelles":
+    st.header("📅 Gestion des données mensuelles")
+    st.markdown("""
+    Cette section vous permet de saisir les données mensuelles de votre hôtel.
+    Ces données sont utilisées pour les graphiques d'évolution et les analyses temporelles.
+    """)
+    
+    # Interface de saisie des données mensuelles
+    st.subheader("📊 Saisie des indicateurs mensuels")
+    
+    months = st.session_state.monthly_data["months"]
+    
+    # Création de colonnes pour la saisie
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("**Taux d'occupation (%)**")
+        new_occupancy = []
+        for i, month in enumerate(months):
+            val = st.number_input(f"{month}", value=st.session_state.monthly_data["occupancy"][i], 
+                                  min_value=0, max_value=100, key=f"occ_{month}", label_visibility="collapsed")
+            new_occupancy.append(val)
+    
+    with col2:
+        st.markdown("**ADR (Prix moyen) (€)**")
+        new_adr = []
+        for i, month in enumerate(months):
+            val = st.number_input(f"{month}", value=st.session_state.monthly_data["adr"][i], 
+                                  min_value=0, key=f"adr_{month}", label_visibility="collapsed")
+            new_adr.append(val)
+    
+    with col3:
+        st.markdown("**RevPAR (€)**")
+        new_revpar = []
+        for i, month in enumerate(months):
+            val = st.number_input(f"{month}", value=st.session_state.monthly_data["revpar"][i], 
+                                  min_value=0, key=f"rev_{month}", label_visibility="collapsed")
+            new_revpar.append(val)
+    
+    with col4:
+        st.markdown("**Dépense moyenne/client (€)**")
+        new_spending = []
+        for i, month in enumerate(months):
+            val = st.number_input(f"{month}", value=st.session_state.monthly_data["avg_spending"][i], 
+                                  min_value=0, key=f"spend_{month}", label_visibility="collapsed")
+            new_spending.append(val)
+    
+    # Bouton pour sauvegarder
+    if st.button("💾 Sauvegarder les données mensuelles"):
+        st.session_state.monthly_data["occupancy"] = new_occupancy
+        st.session_state.monthly_data["adr"] = new_adr
+        st.session_state.monthly_data["revpar"] = new_revpar
+        st.session_state.monthly_data["avg_spending"] = new_spending
+        st.success("Données mensuelles sauvegardées !")
+        st.rerun()
+    
+    # Visualisation des données mensuelles
+    st.subheader("📈 Visualisation des tendances mensuelles")
+    
+    # Création du dataframe
+    df_monthly = pd.DataFrame({
+        "Mois": months * 4,
+        "Indicateur": ["Occupancy (%)"] * 12 + ["ADR (€)"] * 12 + ["RevPAR (€)"] * 12 + ["Dépense moyenne (€)"] * 12,
+        "Valeur": st.session_state.monthly_data["occupancy"] + 
+                  st.session_state.monthly_data["adr"] + 
+                  st.session_state.monthly_data["revpar"] + 
+                  st.session_state.monthly_data["avg_spending"]
+    })
+    
+    fig = px.line(df_monthly, x="Mois", y="Valeur", color="Indicateur", 
+                  title="Évolution mensuelle des indicateurs",
+                  markers=True)
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Graphique combiné
+    st.subheader("📊 Comparaison mensuelle")
+    
+    fig2 = go.Figure()
+    fig2.add_trace(go.Bar(x=months, y=st.session_state.monthly_data["occupancy"], 
+                          name="Occupancy (%)", marker_color="blue", yaxis="y"))
+    fig2.add_trace(go.Scatter(x=months, y=st.session_state.monthly_data["adr"], 
+                              name="ADR (€)", marker_color="red", yaxis="y2", mode="lines+markers"))
+    
+    fig2.update_layout(
+        title="Occupancy vs ADR",
+        yaxis=dict(title="Taux d'occupation (%)", side="left"),
+        yaxis2=dict(title="ADR (€)", overlaying="y", side="right"),
+        legend=dict(x=0.01, y=0.99)
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+    
+    # Tableau des données
+    st.subheader("📋 Tableau récapitulatif")
+    
+    recap_df = pd.DataFrame({
+        "Mois": months,
+        "Taux d'occupation (%)": st.session_state.monthly_data["occupancy"],
+        "ADR (€)": st.session_state.monthly_data["adr"],
+        "RevPAR (€)": st.session_state.monthly_data["revpar"],
+        "Dépense moyenne/client (€)": st.session_state.monthly_data["avg_spending"]
+    })
+    st.dataframe(recap_df, use_container_width=True, hide_index=True)
+    
+    # Export
+    csv = recap_df.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Exporter les données mensuelles (CSV)", csv, "donnees_mensuelles.csv", "text/csv")
+
+
+# ============================================================================
+# SECTION 3: ANALYSE DE SENSIBILITÉ
 # ============================================================================
 
 elif section == "📈 Analyse de sensibilité":
@@ -546,6 +642,24 @@ elif section == "📈 Analyse de sensibilité":
     - Multiplicateur > 1 : facteur très influent
     - Multiplicateur < 1 : facteur peu influent
     """)
+    
+    with st.expander("📝 Paramètres de l'analyse", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.session_state.hotel_data["num_guests_input"] = st.number_input("Nombre de clients (base)", 
+                value=st.session_state.hotel_data["num_guests_input"], min_value=0)
+            st.session_state.hotel_data["avg_spending_input"] = st.number_input("Dépense moyenne (€)", 
+                value=st.session_state.hotel_data["avg_spending_input"], min_value=0)
+        with col2:
+            st.session_state.hotel_data["var_material_input"] = st.number_input("Coût matériaux/client (€)", 
+                value=st.session_state.hotel_data["var_material_input"], min_value=0)
+            st.session_state.hotel_data["var_wages_input"] = st.number_input("Salaires variables/client (€)", 
+                value=st.session_state.hotel_data["var_wages_input"], min_value=0)
+        with col3:
+            st.session_state.hotel_data["fixed_admin_input"] = st.number_input("Frais administratifs fixes (€)", 
+                value=st.session_state.hotel_data["fixed_admin_input"], min_value=0)
+            st.session_state.hotel_data["fixed_general_input"] = st.number_input("Frais généraux fixes (€)", 
+                value=st.session_state.hotel_data["fixed_general_input"], min_value=0)
     
     change_percent = st.slider("Variation des facteurs (%)", 1, 30, 10) / 100
     
@@ -580,7 +694,7 @@ elif section == "📈 Analyse de sensibilité":
 
 
 # ============================================================================
-# SECTION 3: DÉPARTEMENT HÉBERGEMENT
+# SECTION 4: DÉPARTEMENT HÉBERGEMENT
 # ============================================================================
 
 elif section == "🛏️ Département Hébergement":
@@ -618,10 +732,21 @@ elif section == "🛏️ Département Hébergement":
         st.warning("⚠️ Commissions élevées - Négociez avec les OTAs")
     if kpis["Rooms Payroll (%)"] > 20:
         st.warning("⚠️ Charge personnel élevée - Optimisez les effectifs")
+    
+    # Évolution mensuelle de l'ADR
+    st.subheader("📅 Évolution mensuelle de l'ADR")
+    adr_df = pd.DataFrame({
+        "Mois": st.session_state.monthly_data["months"],
+        "ADR (€)": st.session_state.monthly_data["adr"]
+    })
+    fig2 = px.line(adr_df, x="Mois", y="ADR (€)", markers=True, title="ADR mensuel")
+    fig2.add_hline(y=kpis["ADR (€)"], line_dash="dash", 
+                   annotation_text=f"Moyenne: {kpis['ADR (€)']:.1f}€")
+    st.plotly_chart(fig2, use_container_width=True)
 
 
 # ============================================================================
-# SECTION 4: DÉPARTEMENT RESTAURATION
+# SECTION 5: DÉPARTEMENT RESTAURATION
 # ============================================================================
 
 elif section == "🍽️ Département Restauration":
@@ -665,10 +790,20 @@ elif section == "🍽️ Département Restauration":
                    "✅" if 25 <= kpis['Total F&B Profit (%)'] <= 35 else "⚠️"]
     })
     st.dataframe(benchmark_data, use_container_width=True, hide_index=True)
+    
+    # Évolution de la dépense moyenne
+    st.subheader("📅 Évolution mensuelle de la dépense moyenne par client")
+    spending_df = pd.DataFrame({
+        "Mois": st.session_state.monthly_data["months"],
+        "Dépense moyenne (€)": st.session_state.monthly_data["avg_spending"]
+    })
+    fig2 = px.line(spending_df, x="Mois", y="Dépense moyenne (€)", markers=True, 
+                   title="Dépense moyenne mensuelle par client")
+    st.plotly_chart(fig2, use_container_width=True)
 
 
 # ============================================================================
-# SECTION 5: DÉPARTEMENT SPA & LOISIRS
+# SECTION 6: DÉPARTEMENT SPA & LOISIRS
 # ============================================================================
 
 elif section == "💆 Département Spa & Loisirs":
@@ -712,7 +847,7 @@ elif section == "💆 Département Spa & Loisirs":
 
 
 # ============================================================================
-# SECTION 6: ANALYSE DES DÉPENSES CLIENTS
+# SECTION 7: ANALYSE DES DÉPENSES CLIENTS
 # ============================================================================
 
 elif section == "💰 Analyse des dépenses clients":
@@ -749,7 +884,7 @@ elif section == "💰 Analyse des dépenses clients":
 
 
 # ============================================================================
-# SECTION 7: ANALYSE DES COÛTS
+# SECTION 8: ANALYSE DES COÛTS
 # ============================================================================
 
 elif section == "📉 Analyse des coûts":
@@ -788,7 +923,7 @@ elif section == "📉 Analyse des coûts":
 
 
 # ============================================================================
-# SECTION 8: RAPPORT COMPLET
+# SECTION 9: RAPPORT COMPLET
 # ============================================================================
 
 else:
@@ -867,17 +1002,31 @@ else:
     
     # Export
     st.subheader("📥 Export des données")
-    if st.button("Générer le rapport complet (CSV)"):
-        report_data = {
-            **kpis,
-            **rooms,
-            **fandb,
-            **spa
-        }
-        df = pd.DataFrame([report_data]).T.reset_index()
-        df.columns = ["Indicateur", "Valeur"]
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("Télécharger le rapport CSV", csv, "hotel_kpi_report.csv", "text/csv")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("📊 Générer le rapport complet (CSV)"):
+            report_data = {
+                **kpis,
+                **rooms,
+                **fandb,
+                **spa
+            }
+            df = pd.DataFrame([report_data]).T.reset_index()
+            df.columns = ["Indicateur", "Valeur"]
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("Télécharger le rapport CSV", csv, "hotel_kpi_report.csv", "text/csv")
+    
+    with col2:
+        monthly_export = pd.DataFrame({
+            "Mois": st.session_state.monthly_data["months"],
+            "Taux occupation (%)": st.session_state.monthly_data["occupancy"],
+            "ADR (€)": st.session_state.monthly_data["adr"],
+            "RevPAR (€)": st.session_state.monthly_data["revpar"],
+            "Depense moyenne (€)": st.session_state.monthly_data["avg_spending"]
+        })
+        csv_monthly = monthly_export.to_csv(index=False).encode('utf-8')
+        st.download_button("📅 Exporter les données mensuelles", csv_monthly, "donnees_mensuelles.csv", "text/csv")
 
 st.markdown("---")
 st.caption("Dashboard d'Analyse Financière Hôtelière - Interface universelle")
